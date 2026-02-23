@@ -13,6 +13,8 @@ const DEFAULTS = {
   breakpoints: [375, 768, 1024, 1440],
   visualThreshold: 0.1,
   visual: true,
+  a11y: true,
+  a11yRules: null,
 };
 
 export async function loadConfig(projectDir) {
@@ -44,6 +46,26 @@ export async function loadConfig(projectDir) {
   if (config.visualThreshold !== undefined) {
     if (typeof config.visualThreshold !== 'number' || config.visualThreshold < 0 || config.visualThreshold > 100) {
       throw new Error(`${configPath}: "visualThreshold" must be a number between 0 and 100 (percentage of allowed pixel diff)`);
+    }
+  }
+
+  if (config.a11y !== undefined && typeof config.a11y !== 'boolean') {
+    throw new Error(`${configPath}: "a11y" must be a boolean`);
+  }
+
+  if (config.a11yRules !== undefined && config.a11yRules !== null) {
+    if (typeof config.a11yRules !== 'object' || Array.isArray(config.a11yRules)) {
+      throw new Error(`${configPath}: "a11yRules" must be an object`);
+    }
+    const { disable, include, exclude, ...rest } = config.a11yRules;
+    if (Object.keys(rest).length > 0) {
+      throw new Error(`${configPath}: "a11yRules" has unknown keys: ${Object.keys(rest).join(', ')}`);
+    }
+    for (const key of ['disable', 'include', 'exclude']) {
+      const val = config.a11yRules[key];
+      if (val !== undefined && (!Array.isArray(val) || val.some((v) => typeof v !== 'string'))) {
+        throw new Error(`${configPath}: "a11yRules.${key}" must be an array of strings`);
+      }
     }
   }
 

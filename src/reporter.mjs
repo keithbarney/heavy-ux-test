@@ -70,7 +70,38 @@ export function printFlowResults(results) {
   }
 }
 
-export function printSummary(smokeResults, flowResults, screenshotDir) {
+export function printA11yResults(results) {
+  if (results.length === 0) return;
+
+  console.log('');
+  console.log('♿ ACCESSIBILITY (WCAG 2.1 AA)');
+
+  for (const r of results) {
+    const icon = r.passed ? '✅' : '❌';
+    const timing = `${r.duration}ms`;
+    const padded = r.route.padEnd(24);
+
+    if (r.error) {
+      console.log(`  ${padded} ❌ ${timing}`);
+      console.log(`    ⚠️  ${truncate(r.error, 80)}`);
+      continue;
+    }
+
+    if (r.passed) {
+      console.log(`  ${padded} ${icon} ${timing}`);
+    } else {
+      console.log(`  ${padded} ${icon} ${timing}  ${r.violationCount} violations, ${r.nodeCount} elements`);
+      for (const v of r.violations) {
+        const impactIcon = v.impact === 'critical' || v.impact === 'serious' ? '🔴' : v.impact === 'moderate' ? '🟡' : '🟢';
+        console.log(`    ${impactIcon} ${v.id} (${v.impact}) × ${v.nodes}`);
+        console.log(`       ${v.description}`);
+        if (v.target) console.log(`       → ${v.target}`);
+      }
+    }
+  }
+}
+
+export function printSummary(smokeResults, flowResults, screenshotDir, a11yResults = []) {
   const smokeTotal = smokeResults.length;
   const smokePassed = smokeResults.filter((r) => r.passed).length;
 
@@ -81,8 +112,11 @@ export function printSummary(smokeResults, flowResults, screenshotDir) {
     if (f.passed) flowPassed++;
   }
 
-  const total = smokeTotal + flowTotal;
-  const passed = smokePassed + flowPassed;
+  const a11yTotal = a11yResults.length;
+  const a11yPassed = a11yResults.filter((r) => r.passed).length;
+
+  const total = smokeTotal + flowTotal + a11yTotal;
+  const passed = smokePassed + flowPassed + a11yPassed;
   const allPassed = passed === total;
 
   console.log('');
@@ -118,6 +152,17 @@ export function printSummary(smokeResults, flowResults, screenshotDir) {
       } else {
         console.log(`    ❌ ${s.filename}: ${formatDiffPercent(s.visual.diffPercent)} diff → ${s.visual.diffPath}`);
       }
+    }
+  }
+
+  // Accessibility summary
+  if (a11yTotal > 0) {
+    const totalViolations = a11yResults.reduce((sum, r) => sum + r.violationCount, 0);
+    const totalNodes = a11yResults.reduce((sum, r) => sum + r.nodeCount, 0);
+    if (totalViolations === 0) {
+      console.log(`Accessibility: ${a11yPassed}/${a11yTotal} routes clean`);
+    } else {
+      console.log(`Accessibility: ${a11yPassed}/${a11yTotal} routes clean, ${totalViolations} violations across ${totalNodes} elements`);
     }
   }
 

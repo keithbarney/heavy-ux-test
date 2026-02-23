@@ -12,6 +12,7 @@ const opts = {
   scanDirs: [],
   updateBaselines: false,
   noVisual: false,
+  noA11y: false,
   breakpoints: null,
 };
 
@@ -42,6 +43,12 @@ for (let i = 0; i < args.length; i++) {
     case '--no-visual':
       opts.noVisual = true;
       break;
+    case '--a11y':
+      opts.mode = 'a11y';
+      break;
+    case '--no-a11y':
+      opts.noA11y = true;
+      break;
     case '--breakpoints':
       opts.breakpoints = args[++i].split(',').map(Number);
       break;
@@ -61,6 +68,8 @@ Usage:
   ux-test --headed               Show browser window
   ux-test --update-baselines     Accept current screenshots as new baselines
   ux-test --no-visual            Take breakpoint screenshots but skip comparison
+  ux-test --a11y                 Accessibility tests only (WCAG 2.1 AA)
+  ux-test --no-a11y              Skip accessibility tests
   ux-test --breakpoints 375,768  Override breakpoints for this run
 
 Config:

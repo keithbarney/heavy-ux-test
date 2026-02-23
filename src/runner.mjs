@@ -5,8 +5,9 @@ import { loadConfig, loadGlobalConfig, configExists, shouldSkipRoute } from './c
 import { ensureServer, stopServer } from './server.mjs';
 import { runSmokeTests } from './smoke.mjs';
 import { runFlowTests } from './flow.mjs';
+import { runA11yTests } from './a11y.mjs';
 import { discoverRoutes } from './discover.mjs';
-import { printHeader, printSmokeResults, printFlowResults, printSummary } from './reporter.mjs';
+import { printHeader, printSmokeResults, printFlowResults, printA11yResults, printSummary } from './reporter.mjs';
 
 export async function run(opts) {
   if (opts.all) {
@@ -111,17 +112,24 @@ async function runProject(projectDir, opts) {
 
   let smokeResults = [];
   let flowResults = [];
+  let a11yResults = [];
   let allPassed;
 
   try {
     // Smoke tests
-    if (opts.mode !== 'flows') {
+    if (opts.mode !== 'flows' && opts.mode !== 'a11y') {
       smokeResults = await runSmokeTests(page, routes, baseUrl, screenshotDir, config, opts);
       printSmokeResults(smokeResults);
     }
 
+    // Accessibility tests
+    if (opts.mode !== 'flows' && opts.mode !== 'smoke' && !opts.noA11y && config.a11y) {
+      a11yResults = await runA11yTests(browser, routes, baseUrl, config);
+      printA11yResults(a11yResults);
+    }
+
     // Flow tests
-    if (opts.mode !== 'smoke' && config.flows.length > 0) {
+    if (opts.mode !== 'smoke' && opts.mode !== 'a11y' && config.flows.length > 0) {
       let flows = config.flows;
       if (opts.flowName) {
         flows = flows.filter((f) => f.name === opts.flowName);
@@ -135,7 +143,7 @@ async function runProject(projectDir, opts) {
       }
     }
 
-    allPassed = printSummary(smokeResults, flowResults, screenshotDir);
+    allPassed = printSummary(smokeResults, flowResults, screenshotDir, a11yResults);
   } finally {
     await browser.close();
     stopServer(serverInfo);

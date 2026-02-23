@@ -54,6 +54,12 @@ ux-test --update-baselines
 # Take breakpoint screenshots but skip visual comparison
 ux-test --no-visual
 
+# Accessibility tests only (WCAG 2.1 AA)
+ux-test --a11y
+
+# Skip accessibility tests
+ux-test --no-a11y
+
 # Override breakpoints for this run
 ux-test --breakpoints 375,768
 ```
@@ -73,7 +79,9 @@ Each project needs a `.ux-test.json` at its root. Only `port` is required — ro
   "supabase": {},
   "breakpoints": [375, 768, 1024, 1440],
   "visualThreshold": 0.1,
-  "visual": true
+  "visual": true,
+  "a11y": true,
+  "a11yRules": null
 }
 ```
 
@@ -89,6 +97,8 @@ Each project needs a `.ux-test.json` at its root. Only `port` is required — ro
 | `breakpoints` | No | Viewport widths for responsive screenshots. Default: `[375, 768, 1024, 1440]` |
 | `visualThreshold` | No | Pixelmatch tolerance 0–1. Default: `0.1` |
 | `visual` | No | Enable/disable visual regression comparison. Default: `true` |
+| `a11y` | No | Enable/disable accessibility testing. Default: `true` |
+| `a11yRules` | No | Axe rule overrides: `{ disable, include, exclude }` (see below) |
 
 ### Route Auto-Discovery
 
@@ -152,6 +162,8 @@ Screenshot naming: `<route-name>--<width>.png` (double-dash separates route from
 |------|-------------|
 | `--update-baselines` | Accept current screenshots as new baselines |
 | `--no-visual` | Take breakpoint screenshots but skip comparison |
+| `--a11y` | Run only accessibility tests |
+| `--no-a11y` | Skip accessibility tests |
 | `--breakpoints 375,768` | Override breakpoints for this run (comma-separated) |
 
 ### First Run
@@ -174,6 +186,59 @@ ux-test --update-baselines ~/Projects/my-app
 ```
 
 The summary shows total screenshots, matches, and diff file paths for failures.
+
+## Accessibility Testing
+
+Every route is scanned for WCAG 2.1 AA violations using [axe-core](https://github.com/dequelabs/axe-core). Runs at 1024px viewport width. ON by default.
+
+### What It Checks
+
+- Color contrast (WCAG AA ratios)
+- Missing alt text on images
+- Broken ARIA attributes and roles
+- Heading hierarchy issues
+- Form label associations
+- Keyboard accessibility
+- Link and button discernible names
+
+### Config
+
+Disable per-project with `"a11y": false` in `.ux-test.json`, or skip for a single run with `--no-a11y`.
+
+Fine-tune with `a11yRules`:
+
+```json
+{
+  "a11yRules": {
+    "disable": ["color-contrast"],
+    "include": [".main-content"],
+    "exclude": [".third-party-widget"]
+  }
+}
+```
+
+| Key | Description |
+|-----|-------------|
+| `disable` | Array of axe rule IDs to skip (e.g., `["color-contrast"]`) |
+| `include` | CSS selectors to scope the scan to (only these elements are tested) |
+| `exclude` | CSS selectors to exclude from scanning |
+
+### Reporter Output
+
+```
+♿ ACCESSIBILITY (WCAG 2.1 AA)
+
+  /                        ✅ 234ms
+  /about                   ❌ 456ms  3 violations, 7 elements
+    🔴 color-contrast (serious) × 3
+       Elements must have sufficient color contrast
+       → #header > .nav-link
+    🟡 link-name (moderate) × 1
+       Links must have discernible text
+       → a.icon-link
+```
+
+Impact icons: 🔴 serious/critical, 🟡 moderate, 🟢 minor.
 
 ## Flow Tests
 
