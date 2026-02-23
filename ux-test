@@ -1,0 +1,65 @@
+#!/usr/bin/env node
+
+import { run } from './src/runner.mjs';
+
+const args = process.argv.slice(2);
+const opts = {
+  target: null,
+  mode: 'all',
+  flowName: null,
+  all: false,
+  headed: false,
+  scanDirs: [],
+};
+
+for (let i = 0; i < args.length; i++) {
+  switch (args[i]) {
+    case '--smoke':
+      opts.mode = 'smoke';
+      break;
+    case '--flows':
+      opts.mode = 'flows';
+      break;
+    case '--flow':
+      opts.mode = 'flows';
+      opts.flowName = args[++i];
+      break;
+    case '--all':
+      opts.all = true;
+      break;
+    case '--scan-dir':
+      opts.scanDirs.push(args[++i]);
+      break;
+    case '--headed':
+      opts.headed = true;
+      break;
+    case '--help':
+    case '-h':
+      console.log(`
+heavy-ux-test — Automated UX smoke & flow testing
+
+Usage:
+  ux-test                        Run in current directory
+  ux-test <path>                 Target a specific project
+  ux-test --smoke                Smoke tests only
+  ux-test --flows                Flow tests only
+  ux-test --flow "Flow name"     Single named flow
+  ux-test --all                  Test all projects with .ux-test.json
+  ux-test --scan-dir <path>      Directory to scan (repeatable, use with --all)
+  ux-test --headed               Show browser window
+
+Config:
+  ~/.ux-test.json                Global config (scanDirs for --all default)
+  <project>/.ux-test.json        Per-project test config
+`);
+      process.exit(0);
+    default:
+      if (!args[i].startsWith('-')) {
+        opts.target = args[i];
+      }
+      break;
+  }
+}
+
+const passed = await run(opts);
+process.exit(passed ? 0 : 1);

@@ -1,0 +1,27 @@
+{
+  "name": "heavy-ux-test",
+  "version": "1.0.0",
+  "description": "Automated UX smoke and flow testing for web projects",
+  "type": "module",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/keithbarney/heavy-ux-test.git"
+  },
+  "homepage": "https://github.com/keithbarney/heavy-ux-test",
+  "keywords": [
+    "ux-testing",
+    "smoke-testing",
+    "flow-testing",
+    "playwright",
+    "web-testing",
+    "automated-testing"
+  ],
+  "bin": {
+    "ux-test": "./ux-test"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.49.0",
+    "playwright": "^1.50.0"
+  }
+}
