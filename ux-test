@@ -10,6 +10,9 @@ const opts = {
   all: false,
   headed: false,
   scanDirs: [],
+  updateBaselines: false,
+  noVisual: false,
+  breakpoints: null,
 };
 
 for (let i = 0; i < args.length; i++) {
@@ -33,6 +36,15 @@ for (let i = 0; i < args.length; i++) {
     case '--headed':
       opts.headed = true;
       break;
+    case '--update-baselines':
+      opts.updateBaselines = true;
+      break;
+    case '--no-visual':
+      opts.noVisual = true;
+      break;
+    case '--breakpoints':
+      opts.breakpoints = args[++i].split(',').map(Number);
+      break;
     case '--help':
     case '-h':
       console.log(`
@@ -47,6 +59,9 @@ Usage:
   ux-test --all                  Test all projects with .ux-test.json
   ux-test --scan-dir <path>      Directory to scan (repeatable, use with --all)
   ux-test --headed               Show browser window
+  ux-test --update-baselines     Accept current screenshots as new baselines
+  ux-test --no-visual            Take breakpoint screenshots but skip comparison
+  ux-test --breakpoints 375,768  Override breakpoints for this run
 
 Config:
   ~/.ux-test.json                Global config (scanDirs for --all default)

@@ -10,6 +10,9 @@ const DEFAULTS = {
   flows: [],
   startCommand: null,
   type: null,
+  breakpoints: [375, 768, 1024, 1440],
+  visualThreshold: 0.1,
+  visual: true,
 };
 
 export async function loadConfig(projectDir) {
@@ -30,6 +33,18 @@ export async function loadConfig(projectDir) {
 
   if (!config.port || typeof config.port !== 'number') {
     throw new Error(`${configPath}: "port" is required and must be a number`);
+  }
+
+  if (config.breakpoints !== undefined) {
+    if (!Array.isArray(config.breakpoints) || config.breakpoints.some((b) => !Number.isInteger(b) || b <= 0)) {
+      throw new Error(`${configPath}: "breakpoints" must be an array of positive integers`);
+    }
+  }
+
+  if (config.visualThreshold !== undefined) {
+    if (typeof config.visualThreshold !== 'number' || config.visualThreshold < 0 || config.visualThreshold > 100) {
+      throw new Error(`${configPath}: "visualThreshold" must be a number between 0 and 100 (percentage of allowed pixel diff)`);
+    }
   }
 
   return { ...DEFAULTS, ...config, _dir: projectDir };

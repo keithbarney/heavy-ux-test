@@ -47,6 +47,15 @@ ux-test --all --scan-dir ~/Projects/apps --scan-dir ~/Projects/tools
 
 # Show browser window (for debugging)
 ux-test --headed
+
+# Visual regression: accept current screenshots as new baselines
+ux-test --update-baselines
+
+# Take breakpoint screenshots but skip visual comparison
+ux-test --no-visual
+
+# Override breakpoints for this run
+ux-test --breakpoints 375,768
 ```
 
 ## Project Config
@@ -61,7 +70,10 @@ Each project needs a `.ux-test.json` at its root. Only `port` is required — ro
   "routes": ["/", "/about", "/settings"],
   "skipRoutes": ["/admin/*"],
   "flows": [],
-  "supabase": {}
+  "supabase": {},
+  "breakpoints": [375, 768, 1024, 1440],
+  "visualThreshold": 0.1,
+  "visual": true
 }
 ```
 
@@ -74,6 +86,9 @@ Each project needs a `.ux-test.json` at its root. Only `port` is required — ro
 | `skipRoutes` | No | Routes to skip — supports exact match, prefix (`/admin/*`), and glob patterns |
 | `flows` | No | Array of flow test definitions (see below) |
 | `supabase` | No | Supabase config for auth testing (see below) |
+| `breakpoints` | No | Viewport widths for responsive screenshots. Default: `[375, 768, 1024, 1440]` |
+| `visualThreshold` | No | Pixelmatch tolerance 0–1. Default: `0.1` |
+| `visual` | No | Enable/disable visual regression comparison. Default: `true` |
 
 ### Route Auto-Discovery
 
@@ -101,6 +116,64 @@ When you run `ux-test --all`:
 1. If `--scan-dir` flags are provided, those are used
 2. Otherwise, `scanDirs` from `~/.ux-test.json` are used
 3. Otherwise, the current working directory is scanned
+
+## Visual Regression Testing
+
+Screenshots are taken at every configured breakpoint for each route. On the first run, baselines are auto-created. On subsequent runs, current screenshots are compared against baselines using pixelmatch.
+
+### How It Works
+
+1. Each route is navigated once
+2. The viewport is resized to each breakpoint width (height stays 720)
+3. A screenshot is taken at each width
+4. If baselines exist, a pixel-level comparison is performed
+5. Differences above the threshold are flagged as failures
+
+### Screenshot Directory Structure
+
+```
+<project>/screenshots/
+  baselines/                    # Persistent ground truth
+    index--375.png
+    index--768.png
+    about--1024.png
+  runs/<timestamp>/             # Ephemeral test runs
+    current/                    # This run's screenshots
+      index--375.png
+    diffs/                      # Only for failures
+      about--768.png
+```
+
+Screenshot naming: `<route-name>--<width>.png` (double-dash separates route from width).
+
+### CLI Flags
+
+| Flag | Description |
+|------|-------------|
+| `--update-baselines` | Accept current screenshots as new baselines |
+| `--no-visual` | Take breakpoint screenshots but skip comparison |
+| `--breakpoints 375,768` | Override breakpoints for this run (comma-separated) |
+
+### First Run
+
+On the first run (no baselines directory), baselines are auto-created from the current screenshots. No failures are reported.
+
+### Updating Baselines
+
+After intentional design changes, run with `--update-baselines` to accept the current state as the new ground truth:
+
+```bash
+ux-test --update-baselines ~/Projects/my-app
+```
+
+### Reporter Output
+
+```
+/about                   ✅ 987ms
+    375 ✅  768 ❌ 2.3%  1024 ✅  1440 ✅
+```
+
+The summary shows total screenshots, matches, and diff file paths for failures.
 
 ## Flow Tests
 
@@ -140,6 +213,7 @@ Flows are sequences of browser interactions defined in `.ux-test.json`:
 | `assertText` | `selector`, `value` | Assert element contains text |
 | `assertUrl` | `url` | Assert current URL contains string |
 | `assertNoErrors` | — | Assert no console errors occurred during the flow |
+| `setViewport` | `width`, `height?` | Set viewport size (height defaults to 720) |
 | `screenshot` | `name?` | Save a screenshot |
 | `supabaseAuth` | `email`, `password`, `metadata?` | Create test user and inject session (requires `supabase` config) |
 | `supabaseSignOut` | — | Clear auth session (requires `supabase` config) |
@@ -155,7 +229,8 @@ Smoke tests run automatically for every route (unless `--flows` is used). For ea
 - No console errors
 - No uncaught exceptions
 - No failed network requests (4xx/5xx)
-- Screenshots saved for each route
+- Screenshots at every breakpoint width
+- Visual regression against baselines (if baselines exist)
 
 ## Supabase Auth
 
@@ -195,7 +270,7 @@ Servers are automatically stopped after tests complete.
 
 ## Screenshots
 
-Screenshots are saved to `<project>/screenshots/<timestamp>/` with separate directories for smoke and flow tests. The `screenshots/` directory is gitignored by convention.
+Screenshots are saved to `<project>/screenshots/` with `baselines/` for ground truth and `runs/<timestamp>/` for each test run. The `screenshots/` directory is gitignored by convention.
 
 ## License
 

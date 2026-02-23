@@ -87,9 +87,9 @@ async function runProject(projectDir, opts) {
     routes = routes.filter((r) => !shouldSkipRoute(r, config.skipRoutes));
   }
 
-  // Screenshot dir
+  // Screenshot dir: runs/<timestamp>/
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-  const screenshotDir = join(projectDir, 'screenshots', timestamp);
+  const screenshotDir = join(projectDir, 'screenshots', 'runs', timestamp);
 
   printHeader(projectDir, config.port);
 
@@ -116,7 +116,7 @@ async function runProject(projectDir, opts) {
   try {
     // Smoke tests
     if (opts.mode !== 'flows') {
-      smokeResults = await runSmokeTests(page, routes, baseUrl, screenshotDir);
+      smokeResults = await runSmokeTests(page, routes, baseUrl, screenshotDir, config, opts);
       printSmokeResults(smokeResults);
     }
 

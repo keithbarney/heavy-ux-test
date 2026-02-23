@@ -29,6 +29,21 @@ export function printSmokeResults(results) {
         console.log(`    🌐 ${truncate(nf, 80)}`);
       }
     }
+
+    // Breakpoint visual results
+    if (r.screenshots && r.screenshots.length > 0) {
+      const parts = r.screenshots.map((s) => {
+        if (s.baselineCreated) return `${s.width} 🆕`;
+        if (s.baselineUpdated) return `${s.width} 📸`;
+        if (s.visual) {
+          if (s.visual.match) return `${s.width} ✅`;
+          if (s.visual.dimensionMismatch) return `${s.width} ❌ resize`;
+          return `${s.width} ❌ ${formatDiffPercent(s.visual.diffPercent)}`;
+        }
+        return `${s.width} 📸`;
+      });
+      console.log(`    ${parts.join('  ')}`);
+    }
   }
 }
 
@@ -77,12 +92,47 @@ export function printSummary(smokeResults, flowResults, screenshotDir) {
     console.log(`RESULTS: 💥 ${passed}/${total} passed, ${total - passed} failed`);
   }
 
+  // Visual regression summary
+  const allScreenshots = smokeResults.flatMap((r) => r.screenshots || []);
+  if (allScreenshots.length > 0) {
+    const baselinesCreated = allScreenshots.filter((s) => s.baselineCreated).length;
+    const baselinesUpdated = allScreenshots.filter((s) => s.baselineUpdated).length;
+    const compared = allScreenshots.filter((s) => s.visual).length;
+    const matched = allScreenshots.filter((s) => s.visual?.match).length;
+    const failed = allScreenshots.filter((s) => s.visual && !s.visual.match);
+
+    console.log(`Screenshots: ${allScreenshots.length} total`);
+
+    if (baselinesCreated > 0) {
+      console.log(`  🆕 No baselines found — created ${baselinesCreated} baselines`);
+    }
+    if (baselinesUpdated > 0) {
+      console.log(`  📸 Updated ${baselinesUpdated} baselines`);
+    }
+    if (compared > 0) {
+      console.log(`  🔍 Compared ${compared}: ${matched} matched, ${failed.length} failed`);
+    }
+    for (const s of failed) {
+      if (s.visual.dimensionMismatch) {
+        console.log(`    ❌ ${s.filename}: dimension mismatch (${s.visual.current.width}x${s.visual.current.height} vs ${s.visual.baseline.width}x${s.visual.baseline.height})`);
+      } else {
+        console.log(`    ❌ ${s.filename}: ${formatDiffPercent(s.visual.diffPercent)} diff → ${s.visual.diffPath}`);
+      }
+    }
+  }
+
   if (screenshotDir) {
-    console.log(`Screenshots: ${screenshotDir}`);
+    console.log(`Output: ${screenshotDir}`);
   }
   console.log('');
 
   return allPassed;
+}
+
+function formatDiffPercent(pct) {
+  if (pct < 0.01) return `<0.01%`;
+  if (pct < 0.1) return `${pct.toFixed(2)}%`;
+  return `${pct.toFixed(1)}%`;
 }
 
 function truncate(str, max) {

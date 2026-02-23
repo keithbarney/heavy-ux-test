@@ -114,6 +114,11 @@ async function executeStep(page, step, baseUrl, screenshotDir, flowName, errors,
         }
         break;
 
+      case 'setViewport':
+        await page.setViewportSize({ width: step.width, height: step.height || 720 });
+        await page.waitForTimeout(200);
+        break;
+
       case 'screenshot': {
         const name = step.name || `${flowName}-step`.replace(/\s+/g, '-').toLowerCase();
         await page.screenshot({
@@ -156,6 +161,7 @@ function describeStep(step) {
     case 'assertText': return `assertText "${step.value}"`;
     case 'assertUrl': return `assertUrl ${step.url}`;
     case 'assertNoErrors': return 'assertNoErrors';
+    case 'setViewport': return `setViewport ${step.width}x${step.height || 720}`;
     case 'screenshot': return `screenshot ${step.name || ''}`;
     case 'supabaseAuth': return `supabaseAuth ${step.email}`;
     case 'supabaseSignOut': return 'supabaseSignOut';
